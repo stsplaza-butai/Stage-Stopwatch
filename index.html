@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>舞台ストップウォッチ</title>
 <style>
   body {
@@ -11,78 +11,89 @@
     font-family: 'Helvetica Neue', Arial, sans-serif;
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    height: 100dvh; /* スマホのアドレスバー等の高さを考慮 */
     margin: 0;
     padding: 15px;
     box-sizing: border-box;
   }
   button {
-    touch-action: manipulation; /* スマホでのズームやダブルタップ防止 */
+    touch-action: manipulation;
     cursor: pointer;
   }
   header {
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
   }
   #resetBtn {
     background: #333;
     color: #fff;
     border: none;
-    padding: 10px 20px;
+    padding: 8px 16px;
     border-radius: 8px;
-    font-size: 16px;
+    font-size: 14px;
   }
   .time-display {
-    font-size: 100px;
+    font-size: 85px; /* 縦幅節約のために少し縮小 */
     text-align: center;
-    margin: 10px 0 30px;
-    font-variant-numeric: tabular-nums; /* 数字の幅を固定してガタつきを防止 */
+    margin: 0 0 15px 0;
+    font-variant-numeric: tabular-nums;
     font-weight: bold;
   }
   .controls {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     gap: 10px;
   }
   .controls button {
     background: #2a2a2a;
     color: white;
     border: none;
-    padding: 20px 0;
-    font-size: 24px;
+    padding: 15px 0;
+    font-size: 20px;
     border-radius: 12px;
     flex: 1;
     font-weight: bold;
   }
   .lap-container {
-    flex-grow: 1;
+    flex: 0 1 25dvh; /* 高さを全体の約1/4程度に抑える */
+    min-height: 80px;
     overflow-y: auto;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     background: #1e1e1e;
     border-radius: 12px;
     padding: 10px 15px;
   }
   .lap-item {
-    font-size: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* 左右均等に分割 */
+    gap: 20px; /* 真ん中の隙間 */
+    font-size: 18px;
     border-bottom: 1px solid #333;
-    padding: 12px 0;
-    font-variant-numeric: tabular-nums;
+    padding: 10px 0;
     color: #ccc;
   }
   .lap-item:last-child {
     border-bottom: none;
   }
+  .lap-num {
+    text-align: right; /* LAP数は右揃え */
+    font-weight: bold;
+  }
+  .lap-time {
+    text-align: left; /* タイムは左揃え */
+    font-variant-numeric: tabular-nums;
+  }
   .start-stop {
     width: 100%;
-    padding: 25px;
-    font-size: 32px;
+    padding: 20px;
+    font-size: 28px;
     border: none;
     border-radius: 15px;
     font-weight: bold;
-    margin-top: auto;
+    margin-top: auto; /* 余ったスペースの分だけ下へ寄せる */
   }
   .start {
     background: #28a745;
@@ -128,7 +139,6 @@
   const lapBtn = document.getElementById('lapBtn');
   const lapList = document.getElementById('lapList');
 
-  // ミリ秒を MM:SS に変換
   function formatTime(ms) {
     if (ms < 0) ms = 0;
     let totalSeconds = Math.floor(ms / 1000);
@@ -143,14 +153,12 @@
 
   startStopBtn.addEventListener('click', () => {
     if (isRunning) {
-      // ストップ処理
       clearInterval(timerInterval);
       isRunning = false;
       startStopBtn.textContent = 'START';
       startStopBtn.classList.remove('stop');
       startStopBtn.classList.add('start');
     } else {
-      // スタート処理
       startTime = Date.now() - elapsedTime;
       timerInterval = setInterval(() => {
         elapsedTime = Date.now() - startTime;
@@ -163,7 +171,6 @@
     }
   });
 
-  // ＋ボタン（1秒進める）
   plusBtn.addEventListener('click', () => {
     if (isRunning) {
       startTime -= 1000;
@@ -172,7 +179,6 @@
     }
   });
 
-  // ーボタン（1秒戻す）
   minusBtn.addEventListener('click', () => {
     if (isRunning) {
       startTime += 1000;
@@ -185,19 +191,27 @@
     }
   });
 
-  // LAPボタン
   lapBtn.addEventListener('click', () => {
     if (isRunning) {
       const div = document.createElement('div');
       div.className = 'lap-item';
-      div.textContent = `LAP${lapCount} ${formatTime(elapsedTime)}`;
-      // 新しいラップが見やすいように一番上に追加していくね
+
+      const spanNum = document.createElement('span');
+      spanNum.className = 'lap-num';
+      spanNum.textContent = `LAP${lapCount}`;
+
+      const spanTime = document.createElement('span');
+      spanTime.className = 'lap-time';
+      spanTime.textContent = formatTime(elapsedTime);
+
+      div.appendChild(spanNum);
+      div.appendChild(spanTime);
+
       lapList.prepend(div);
       lapCount++;
     }
   });
 
-  // RESETボタン
   resetBtn.addEventListener('click', () => {
     clearInterval(timerInterval);
     isRunning = false;
