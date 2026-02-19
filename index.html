@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Stage Stopwatch</title>
+<style>
+  body {
+    background-color: #121212;
+    color: #ffffff;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    margin: 0;
+    padding: 15px;
+    box-sizing: border-box;
+  }
+  button {
+    touch-action: manipulation; /* スマホでのズームやダブルタップ防止 */
+    cursor: pointer;
+  }
+  header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  #resetBtn {
+    background: #333;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 16px;
+  }
+  .time-display {
+    font-size: 100px;
+    text-align: center;
+    margin: 10px 0 30px;
+    font-variant-numeric: tabular-nums; /* 数字の幅を固定してガタつきを防止 */
+    font-weight: bold;
+  }
+  .controls {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    gap: 10px;
+  }
+  .controls button {
+    background: #2a2a2a;
+    color: white;
+    border: none;
+    padding: 20px 0;
+    font-size: 24px;
+    border-radius: 12px;
+    flex: 1;
+    font-weight: bold;
+  }
+  .lap-container {
+    flex-grow: 1;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    background: #1e1e1e;
+    border-radius: 12px;
+    padding: 10px 15px;
+  }
+  .lap-item {
+    font-size: 20px;
+    border-bottom: 1px solid #333;
+    padding: 12px 0;
+    font-variant-numeric: tabular-nums;
+    color: #ccc;
+  }
+  .lap-item:last-child {
+    border-bottom: none;
+  }
+  .start-stop {
+    width: 100%;
+    padding: 25px;
+    font-size: 32px;
+    border: none;
+    border-radius: 15px;
+    font-weight: bold;
+    margin-top: auto;
+  }
+  .start {
+    background: #28a745;
+    color: white;
+  }
+  .stop {
+    background: #dc3545;
+    color: white;
+  }
+</style>
+</head>
+<body>
+
+  <header>
+    <button id="resetBtn">RESET</button>
+  </header>
+
+  <div class="time-display" id="display">00:00</div>
+
+  <div class="controls">
+    <button id="minusBtn">-</button>
+    <button id="plusBtn">+</button>
+    <button id="lapBtn">LAP</button>
+  </div>
+
+  <div class="lap-container" id="lapList">
+    </div>
+
+  <button id="startStopBtn" class="start-stop start">START</button>
+
+<script>
+  let startTime = 0;
+  let elapsedTime = 0;
+  let timerInterval = null;
+  let isRunning = false;
+  let lapCount = 1;
+
+  const display = document.getElementById('display');
+  const startStopBtn = document.getElementById('startStopBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const plusBtn = document.getElementById('plusBtn');
+  const minusBtn = document.getElementById('minusBtn');
+  const lapBtn = document.getElementById('lapBtn');
+  const lapList = document.getElementById('lapList');
+
+  // ミリ秒を MM:SS に変換
+  function formatTime(ms) {
+    if (ms < 0) ms = 0;
+    let totalSeconds = Math.floor(ms / 1000);
+    let minutes = Math.floor(totalSeconds / 60);
+    let seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  }
+
+  function updateDisplay() {
+    display.textContent = formatTime(elapsedTime);
+  }
+
+  startStopBtn.addEventListener('click', () => {
+    if (isRunning) {
+      // ストップ処理
+      clearInterval(timerInterval);
+      isRunning = false;
+      startStopBtn.textContent = 'START';
+      startStopBtn.classList.remove('stop');
+      startStopBtn.classList.add('start');
+    } else {
+      // スタート処理
+      startTime = Date.now() - elapsedTime;
+      timerInterval = setInterval(() => {
+        elapsedTime = Date.now() - startTime;
+        updateDisplay();
+      }, 100);
+      isRunning = true;
+      startStopBtn.textContent = 'STOP';
+      startStopBtn.classList.remove('start');
+      startStopBtn.classList.add('stop');
+    }
+  });
+
+  // ＋ボタン（1秒進める）
+  plusBtn.addEventListener('click', () => {
+    if (isRunning) {
+      startTime -= 1000;
+      elapsedTime = Date.now() - startTime;
+      updateDisplay();
+    }
+  });
+
+  // ーボタン（1秒戻す）
+  minusBtn.addEventListener('click', () => {
+    if (isRunning) {
+      startTime += 1000;
+      elapsedTime = Date.now() - startTime;
+      if (elapsedTime < 0) {
+        elapsedTime = 0;
+        startTime = Date.now();
+      }
+      updateDisplay();
+    }
+  });
+
+  // LAPボタン
+  lapBtn.addEventListener('click', () => {
+    if (isRunning) {
+      const div = document.createElement('div');
+      div.className = 'lap-item';
+      div.textContent = `LAP${lapCount} ${formatTime(elapsedTime)}`;
+      // 新しいラップが見やすいように一番上に追加していくね
+      lapList.prepend(div);
+      lapCount++;
+    }
+  });
+
+  // RESETボタン
+  resetBtn.addEventListener('click', () => {
+    clearInterval(timerInterval);
+    isRunning = false;
+    elapsedTime = 0;
+    lapCount = 1;
+    updateDisplay();
+    lapList.innerHTML = '';
+    startStopBtn.textContent = 'START';
+    startStopBtn.classList.remove('stop');
+    startStopBtn.classList.add('start');
+  });
+</script>
+</body>
+</html>
