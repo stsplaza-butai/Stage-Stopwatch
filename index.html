@@ -58,7 +58,7 @@
     font-weight: bold;
     transition: background-color 0.2s;
   }
-  .lap-container {
+  .cue-container {
     flex: 1;
     min-height: 80px;
     overflow-y: auto;
@@ -68,7 +68,7 @@
     padding: 10px 15px 30vh 15px; 
     scroll-behavior: smooth;
   }
-  .lap-item {
+  .cue-item {
     display: grid;
     grid-template-columns: 55px 65px 1fr;
     gap: 15px;
@@ -79,25 +79,25 @@
     cursor: pointer;
     align-items: center;
   }
-  .lap-item:last-child {
+  .cue-item:last-child {
     border-bottom: none;
   }
-  .lap-num {
+  .cue-num {
     text-align: right;
     font-weight: bold;
   }
-  .lap-time {
+  .cue-time {
     text-align: left;
     font-variant-numeric: tabular-nums;
   }
-  .lap-memo {
+  .cue-memo {
     text-align: left;
     color: #888;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .lap-memo.has-text {
+  .cue-memo.has-text {
     color: #ffffff;
   }
   .start-stop {
@@ -120,7 +120,7 @@
 
   /* 専用のメモ入力画面（モーダル）のスタイル */
   #memoModal {
-    display: none; /* 初期状態は隠す */
+    display: none;
     position: fixed;
     top: 0;
     left: 0;
@@ -195,18 +195,18 @@
   <div class="controls">
     <button id="minusBtn">-</button>
     <button id="plusBtn">+</button>
-    <button id="lapBtn">LAP</button>
+    <button id="cueBtn">CUE</button>
     <button id="copyBtn">COPY</button>
   </div>
 
-  <div class="lap-container" id="lapList">
+  <div class="cue-container" id="cueList">
     </div>
 
   <button id="startStopBtn" class="start-stop start">START</button>
 
   <div id="memoModal">
     <div class="modal-content">
-      <h3 class="modal-title">LAPのメモを入力</h3>
+      <h3 class="modal-title">CUEのメモを入力</h3>
       <input type="text" id="memoInput" placeholder="暗転、音響きっかけ など" autocomplete="off">
       <div class="modal-buttons">
         <button id="cancelBtn">キャンセル</button>
@@ -220,19 +220,18 @@
   let elapsedTime = 0;
   let timerInterval = null;
   let isRunning = false;
-  let lapCount = 1;
-  let editingSpan = null; // 現在編集中のメモ要素を覚えておく変数
+  let cueCount = 1;
+  let editingSpan = null;
 
   const display = document.getElementById('display');
   const startStopBtn = document.getElementById('startStopBtn');
   const resetBtn = document.getElementById('resetBtn');
   const plusBtn = document.getElementById('plusBtn');
   const minusBtn = document.getElementById('minusBtn');
-  const lapBtn = document.getElementById('lapBtn');
+  const cueBtn = document.getElementById('cueBtn');
   const copyBtn = document.getElementById('copyBtn');
-  const lapList = document.getElementById('lapList');
+  const cueList = document.getElementById('cueList');
 
-  // モーダル関連の要素
   const memoModal = document.getElementById('memoModal');
   const memoInput = document.getElementById('memoInput');
   const cancelBtn = document.getElementById('cancelBtn');
@@ -290,39 +289,36 @@
     }
   });
 
-  lapBtn.addEventListener('click', () => {
+  cueBtn.addEventListener('click', () => {
     if (isRunning) {
       const div = document.createElement('div');
-      div.className = 'lap-item';
+      div.className = 'cue-item';
 
       const spanNum = document.createElement('span');
-      spanNum.className = 'lap-num';
-      spanNum.textContent = `LAP${lapCount}`;
+      spanNum.className = 'cue-num';
+      spanNum.textContent = `CUE${cueCount}`;
 
       const spanTime = document.createElement('span');
-      spanTime.className = 'lap-time';
+      spanTime.className = 'cue-time';
       spanTime.textContent = formatTime(elapsedTime);
 
       const spanMemo = document.createElement('span');
-      spanMemo.className = 'lap-memo';
+      spanMemo.className = 'cue-memo';
       spanMemo.textContent = 'メモ';
 
       div.appendChild(spanNum);
       div.appendChild(spanTime);
       div.appendChild(spanMemo);
 
-      // 行をタップした時の処理を、自作の入力画面を開くように変更
       div.addEventListener('click', () => {
-        editingSpan = spanMemo; // 編集する場所を記憶
+        editingSpan = spanMemo;
         memoInput.value = spanMemo.textContent === 'メモ' ? '' : spanMemo.textContent;
         memoModal.style.display = 'flex';
-        
-        // 画面を表示した瞬間に、入力欄にフォーカスを当てる（キーボードを出す）
         memoInput.focus(); 
       });
 
-      lapList.appendChild(div);
-      lapCount++;
+      cueList.appendChild(div);
+      cueCount++;
 
       setTimeout(() => {
         div.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -330,7 +326,6 @@
     }
   });
 
-  // メモの保存処理
   function saveMemo() {
     if (editingSpan) {
       const trimmedText = memoInput.value.trim();
@@ -345,18 +340,15 @@
     closeModal();
   }
 
-  // モーダルを閉じる処理
   function closeModal() {
     memoModal.style.display = 'none';
     editingSpan = null;
-    // フォーカスを外して確実にキーボードを引っ込める
     memoInput.blur(); 
   }
 
   saveBtn.addEventListener('click', saveMemo);
   cancelBtn.addEventListener('click', closeModal);
 
-  // 入力欄でエンターキーを押した時も保存できるようにするね
   memoInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       saveMemo();
@@ -364,14 +356,14 @@
   });
 
   copyBtn.addEventListener('click', () => {
-    const items = document.querySelectorAll('.lap-item');
+    const items = document.querySelectorAll('.cue-item');
     if (items.length === 0) return;
 
     let copyText = '';
     items.forEach(item => {
-      const num = item.querySelector('.lap-num').textContent;
-      const time = item.querySelector('.lap-time').textContent;
-      const memo = item.querySelector('.lap-memo').textContent;
+      const num = item.querySelector('.cue-num').textContent;
+      const time = item.querySelector('.cue-time').textContent;
+      const memo = item.querySelector('.cue-memo').textContent;
       copyText += `${num}\t${time}\t${memo === 'メモ' ? '' : memo}\n`;
     });
 
@@ -395,9 +387,9 @@
     clearInterval(timerInterval);
     isRunning = false;
     elapsedTime = 0;
-    lapCount = 1;
+    cueCount = 1;
     updateDisplay();
-    lapList.innerHTML = '';
+    cueList.innerHTML = '';
     startStopBtn.textContent = 'START';
     startStopBtn.classList.remove('stop');
     startStopBtn.classList.add('start');
