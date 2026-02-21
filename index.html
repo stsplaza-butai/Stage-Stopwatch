@@ -11,7 +11,7 @@
     font-family: 'Helvetica Neue', Arial, sans-serif;
     display: flex;
     flex-direction: column;
-    height: 100dvh; /* スマホのアドレスバー等の高さを考慮 */
+    height: 100dvh;
     margin: 0;
     padding: 15px;
     box-sizing: border-box;
@@ -35,7 +35,7 @@
     font-size: 14px;
   }
   .time-display {
-    font-size: 85px; /* 縦幅節約のために少し縮小 */
+    font-size: 85px;
     text-align: center;
     margin: 0 0 15px 0;
     font-variant-numeric: tabular-nums;
@@ -45,46 +45,61 @@
     display: flex;
     justify-content: space-between;
     margin-bottom: 15px;
-    gap: 10px;
+    gap: 8px;
   }
   .controls button {
     background: #2a2a2a;
     color: white;
     border: none;
     padding: 15px 0;
-    font-size: 20px;
+    font-size: 18px;
     border-radius: 12px;
     flex: 1;
     font-weight: bold;
+    transition: background-color 0.2s;
   }
   .lap-container {
-    flex: 0 1 25dvh; /* 高さを全体の約1/4程度に抑える */
+    flex: 1;
     min-height: 80px;
     overflow-y: auto;
     margin-bottom: 15px;
     background: #1e1e1e;
     border-radius: 12px;
-    padding: 10px 15px;
+    /* ここを修正：一番下に大きな余白を作ることで、最後の行でも真ん中までスクロールできるようにする */
+    padding: 10px 15px 30vh 15px; 
+    scroll-behavior: smooth;
   }
   .lap-item {
     display: grid;
-    grid-template-columns: 1fr 1fr; /* 左右均等に分割 */
-    gap: 20px; /* 真ん中の隙間 */
-    font-size: 18px;
+    grid-template-columns: 55px 65px 1fr;
+    gap: 15px;
+    font-size: 16px;
     border-bottom: 1px solid #333;
-    padding: 10px 0;
+    padding: 12px 0;
     color: #ccc;
+    cursor: pointer;
+    align-items: center;
   }
   .lap-item:last-child {
     border-bottom: none;
   }
   .lap-num {
-    text-align: right; /* LAP数は右揃え */
+    text-align: right;
     font-weight: bold;
   }
   .lap-time {
-    text-align: left; /* タイムは左揃え */
+    text-align: left;
     font-variant-numeric: tabular-nums;
+  }
+  .lap-memo {
+    text-align: left;
+    color: #888;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .lap-memo.has-text {
+    color: #ffffff;
   }
   .start-stop {
     width: 100%;
@@ -93,7 +108,7 @@
     border: none;
     border-radius: 15px;
     font-weight: bold;
-    margin-top: auto; /* 余ったスペースの分だけ下へ寄せる */
+    margin-top: auto;
   }
   .start {
     background: #28a745;
@@ -117,6 +132,7 @@
     <button id="minusBtn">-</button>
     <button id="plusBtn">+</button>
     <button id="lapBtn">LAP</button>
+    <button id="copyBtn">COPY</button>
   </div>
 
   <div class="lap-container" id="lapList">
@@ -137,6 +153,7 @@
   const plusBtn = document.getElementById('plusBtn');
   const minusBtn = document.getElementById('minusBtn');
   const lapBtn = document.getElementById('lapBtn');
+  const copyBtn = document.getElementById('copyBtn');
   const lapList = document.getElementById('lapList');
 
   function formatTime(ms) {
@@ -204,12 +221,66 @@
       spanTime.className = 'lap-time';
       spanTime.textContent = formatTime(elapsedTime);
 
+      const spanMemo = document.createElement('span');
+      spanMemo.className = 'lap-memo';
+      spanMemo.textContent = 'メモ';
+
       div.appendChild(spanNum);
       div.appendChild(spanTime);
+      div.appendChild(spanMemo);
 
-      lapList.prepend(div);
+      div.addEventListener('click', () => {
+        const currentText = spanMemo.textContent === 'メモ' ? '' : spanMemo.textContent;
+        const newText = prompt('LAPのメモを入力してね:', currentText);
+        
+        if (newText !== null) {
+          const trimmedText = newText.trim();
+          if (trimmedText === '') {
+            spanMemo.textContent = 'メモ';
+            spanMemo.classList.remove('has-text');
+          } else {
+            spanMemo.textContent = trimmedText;
+            spanMemo.classList.add('has-text');
+          }
+        }
+      });
+
+      lapList.appendChild(div);
       lapCount++;
+
+      // ブラウザが要素を描画するのを少し（100ミリ秒）待ってからスクロールさせる
+      setTimeout(() => {
+        div.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
     }
+  });
+
+  copyBtn.addEventListener('click', () => {
+    const items = document.querySelectorAll('.lap-item');
+    if (items.length === 0) return;
+
+    let copyText = '';
+    items.forEach(item => {
+      const num = item.querySelector('.lap-num').textContent;
+      const time = item.querySelector('.lap-time').textContent;
+      const memo = item.querySelector('.lap-memo').textContent;
+      copyText += `${num}\t${time}\t${memo === 'メモ' ? '' : memo}\n`;
+    });
+
+    navigator.clipboard.writeText(copyText).then(() => {
+      const originalText = copyBtn.textContent;
+      const originalBg = copyBtn.style.backgroundColor;
+      
+      copyBtn.textContent = 'COPIED';
+      copyBtn.style.backgroundColor = '#28a745';
+      
+      setTimeout(() => {
+        copyBtn.textContent = originalText;
+        copyBtn.style.backgroundColor = originalBg;
+      }, 1500);
+    }).catch(err => {
+      alert('ごめん、クリップボードへのコピーに失敗しちゃったみたい……');
+    });
   });
 
   resetBtn.addEventListener('click', () => {
